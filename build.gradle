@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'org.ajoberstar.grgit' version '3.0.0'
+    id 'net.minecrell.licenser' version '0.4.1'
+}
+
+sourceCompatibility = targetCompatibility = 1.8
+
+compileJava {
+    sourceCompatibility = targetCompatibility = 1.8
+}
+
+group 'io.entirety.mcservergradle'
+version gitVersion()
+
+def gitVersion() {
+    // Check if git repo
+    if (!grgit) return 'GITBORK'.toString()
+
+    // Get most recent tag info
+    def raw = null
+
+    // Try find the latest git tag
+    try {
+        raw = grgit.describe(longDescr: true)
+    } catch (Exception e) {
+        e.printStackTrace()
+    }
+
+    // Set description
+    def desc = (raw == null ? 'MAJOR.MINOR-PATCH-HASH' : raw).split('-') as List
+
+    // Remove hash
+    desc.removeLast()
+
+    // Get parts from description
+    def offset = desc.removeLast()
+    def tag = desc.join('-')
+    def branch = grgit.branch.current().name
+
+    // Check branch
+    if (branch in ['master', 'HEAD'])
+        branch = null
+
+    // Return the baked version string
+    return "${tag}.${offset}${branch == null ? '' : ('-' + branch)}".toString()
+}
+
+license {
+    header = file('HEADER')
+
+    ext {
+        name = 'MCServerGradle'
+        year = 2018
+        fullname = 'entirety'
+    }
+
+    exclude '**/*.properties'
+}
+
+wrapper {
+    gradleVersion = '5.0'
+    distributionType = Wrapper.DistributionType.ALL
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation gradleApi()
+}
+
+task installGitHooks(type: Copy) {
+    from "${projectDir}/.git-hooks"
+    into "${projectDir}/.git/hooks"
+}
